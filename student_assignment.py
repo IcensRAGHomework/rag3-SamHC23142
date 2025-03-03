@@ -21,7 +21,7 @@ openai_ef = embedding_functions.OpenAIEmbeddingFunction(
     api_version = gpt_emb_config['api_version'],
     deployment_id = gpt_emb_config['deployment_name']
 )
-def generate_hw01():
+def generate_hw01(question):
     with open(csvFile, mode="r", encoding="utf-8") as file:
         lines = csv.reader(file)
         
@@ -55,8 +55,8 @@ def generate_hw01():
     collection = chroma_client.get_or_create_collection(
         name="TRAVEL",
         metadata={"hnsw:space": "cosine"},
-        embedding_function=openai_ef,
-    )    
+        embedding_function=openai_ef
+    ) 
     collection.add(
         ids=ids,
         documents=documents,
