@@ -3,7 +3,7 @@ import chromadb
 import traceback
 
 import csv
-from datetime import datetime
+import datetime
 
 from chromadb.utils import embedding_functions
 
@@ -43,52 +43,106 @@ def GetTables(db_file = 'chroma.sqlite3'):
         print("\n")  # 分隔各個表格的輸出
 
 
-
+def timestampTrans(time):
+    if isinstance(time, datetime.datetime):
+        date_timestamp = int(round(time.timestamp()))
+    else:
+        date_obj = datetime.datetime.strptime(time, '%Y-%m-%d')
+        date_timestamp = int(round(date_obj.timestamp()))   
+    return date_timestamp
 def generate_hw01(question):
-    with open(csvFile, mode="r", encoding="utf-8") as file:
-        lines = csv.reader(file)
-        
-        documents = []
-        
-        metadatas = []
-        
-        ids = []
-        
-        for i, line in enumerate(lines):
-            if i==0:
-                continue
-            documents.append(line[5])
-            date_obj = datetime.strptime(line[9], '%Y-%m-%d')
-            date_timestamp = str(round(date_obj.timestamp()))            
-            if line[2] == "農場":
-                line[2] = "旅遊"
-            metadatas.append({
-            "file_name": csvFile,
-            "name": line[1],
-            "type": line[2],
-            "address": line[3],
-            "tel": line[4],
-            "city": line[7],
-            "town": line[8],
-            "date": date_timestamp
-            })
-            ids.append(line[0])
-            
     chroma_client = chromadb.PersistentClient(path=dbpath)
     collection = chroma_client.get_or_create_collection(
         name="TRAVEL",
         metadata={"hnsw:space": "cosine"},
         embedding_function=openai_ef
     ) 
-    collection.add(
-        ids=ids,
-        documents=documents,
-        metadatas=metadatas,            
-    )
+    if collection.count() == 0:
+        with open(csvFile, mode="r", encoding="utf-8") as file:
+            lines = csv.reader(file)
+            
+            documents = []
+            
+            metadatas = []
+            
+            ids = []
+            
+            for i, line in enumerate(lines):
+                if i==0:
+                    continue
+                documents.append(line[5])
+                if line[2] == "農場":
+                    line[2] = "旅遊"
+                metadatas.append({
+                "file_name": csvFile,
+                "name": line[1],
+                "type": line[2],
+                "address": line[3],
+                "tel": line[4],
+                "city": line[7],
+                "town": line[8],
+                "date": timestampTrans(line[9])
+                })
+                ids.append(line[0])
+                
+
+        collection.add(
+            ids=ids,
+            documents=documents,
+            metadatas=metadatas,            
+        )
     
     return collection    
 def generate_hw02(question, city, store_type, start_date, end_date):
-    pass
+    start_date = timestampTrans(start_date)
+    end_date = timestampTrans(end_date)
+    
+    chroma_client = chromadb.PersistentClient(path=dbpath)
+    collection = chroma_client.get_or_create_collection(
+        name="TRAVEL",
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=openai_ef
+    )
+    
+    city_filter = [{"city": {"$eq": t}} for t in city] if city else []
+
+    filters = []
+
+    if city_filter:
+        filters.append({"$or": city_filter})
+
+    if store_type:
+        filters.append({"type": {"$eq": store_type}})
+
+    if start_date:
+        filters.append({"date": {"$gte": start_date}})
+
+    if end_date:
+        filters.append({"date": {"$lte": end_date}})
+    
+    filterMetadatas = {"$and": filters} if filters else {}
+
+    # print("Filter Metadatas:", filterMetadatas)
+
+    result = collection.query(
+        query_texts=[question],
+        where=filterMetadatas,
+        include=["metadatas", "distances"]
+    )
+    metadatas = result.get("metadatas", [])
+    distances = result.get("distances", [])
+
+    names = []
+    for metadata_list, distance_list in zip(metadatas, distances):
+        for metadata, distance in zip(metadata_list, distance_list):
+            if distance < 0.2 and "name" in metadata:
+            filtered_results.append((metadata, distance))
+
+    filtered_results.sort(key=lambda x: x[1])
+
+    names = [metadata["name"] for metadata, distance in filtered_results if "name" in metadata]
+
+    return names
     
 def generate_hw03(question, store_name, new_store_name, city, store_type):
     pass
