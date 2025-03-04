@@ -32,7 +32,6 @@ def GetTables(db_file = 'chroma.sqlite3'):
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cur.fetchall()
 
-    # 對每個表格執行查詢並打印其內容
     for table in tables:
         table_name = table[0]
         print(f"Table: {table_name}")
@@ -40,7 +39,7 @@ def GetTables(db_file = 'chroma.sqlite3'):
         results = cur.fetchall()
         for row in results:
             print(row)
-        print("\n")  # 分隔各個表格的輸出
+        print("\n")
 
 
 def timestampTrans(time):
@@ -190,19 +189,19 @@ def generate_hw03(question, store_name, new_store_name, city, store_type):
     )
     metadatas = result.get("metadatas", [])
     distances = result.get("distances", [])
+    ids = result.get("ids", [])
 
-    # 初始化 filtered_results 列表
     filtered_results = []
 
-    for metadata_list, distance_list in zip(metadatas, distances):
-        for metadata, distance in zip(metadata_list, distance_list):
+    for metadata_list, distance_list, id_list in zip(metadatas, distances, ids):
+        for metadata, distance, id in zip(metadata_list, distance_list, id_list):
             if metadata["name"] == store_name:
-                metadata["new_store_name"] = new_store_name
-                # 假設 collection.update_metadata 是正確的方法來更新元數據
-                collection.update(
-                    ids=[metadata["file_name"]],
-                    metadatas=[metadata]
-                )
+                if not "new_store_name" in metadata:
+                    metadata["new_store_name"] = new_store_name
+                    collection.update(
+                        ids=[id],
+                        metadatas=[metadata]
+                    )
             if distance < 0.2:
                 if "new_store_name" in metadata:
                     filtered_results.append((metadata["new_store_name"], distance))
