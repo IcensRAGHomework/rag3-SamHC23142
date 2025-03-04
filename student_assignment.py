@@ -66,7 +66,7 @@ def generate_hw01(question):
             metadatas = []
             
             ids = []
-            
+            i = 1
             for i, line in enumerate(lines):
                 if i==0:
                     continue
@@ -83,9 +83,8 @@ def generate_hw01(question):
                 "town": line[8],
                 "date": timestampTrans(line[9])
                 })
-                ids.append(line[0])
-                
-
+                ids.append(str(i))                
+                i += 1
         collection.add(
             ids=ids,
             documents=documents,
@@ -108,21 +107,26 @@ def generate_hw02(question, city, store_type, start_date, end_date):
 
     filters = []
 
-    if city_filter:
+    if len(city_filter) > 1:
         filters.append({"$or": city_filter})
+    elif len(city_filter) == 1:
+        filters.append(city_filter[0])
 
     if store_type:
         filters.append({"type": {"$eq": store_type}})
 
     if start_date:
-        filters.append({"date": {"$gte": start_date}})
+        filters.append({"date": {"$gte": int(start_date)}})
 
     if end_date:
-        filters.append({"date": {"$lte": end_date}})
-    
-    filterMetadatas = {"$and": filters} if filters else {}
+        filters.append({"date": {"$lte": int(end_date)}})
 
-    # print("Filter Metadatas:", filterMetadatas)
+    if len(filters) > 1:
+        filterMetadatas = {"$and": filters}
+    elif len(filters) == 1:
+        filterMetadatas = filters[0]
+    else:
+        filterMetadatas = {}
 
     result = collection.query(
         query_texts=[question],
@@ -137,7 +141,7 @@ def generate_hw02(question, city, store_type, start_date, end_date):
     filtered_results = []
     for metadata_list, distance_list in zip(metadatas, distances):
         for metadata, distance in zip(metadata_list, distance_list):
-            if distance < 0.2 and "name" in metadata:
+            if distance < 0.2:
                 filtered_results.append((metadata, distance))
 
     filtered_results.sort(key=lambda x: x[1])
@@ -147,7 +151,69 @@ def generate_hw02(question, city, store_type, start_date, end_date):
     return names
     
 def generate_hw03(question, store_name, new_store_name, city, store_type):
-    pass
+    
+    chroma_client = chromadb.PersistentClient(path=dbpath)
+    collection = chroma_client.get_or_create_collection(
+        name="TRAVEL",
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=openai_ef
+    )
+    
+    city_filter = [{"city": {"$eq": c}} for c in city] if city else []
+    type_filter = [{"type": {"$eq": t}} for t in store_type] if store_type else []
+
+    filters = []
+
+    if len(city_filter) > 1:
+        filters.append({"$or": city_filter})
+    elif len(city_filter) == 1:
+        filters.append(city_filter[0])
+
+    if len(type_filter) > 1:
+        filters.append({"$or": type_filter})
+    elif len(type_filter) == 1:
+        filters.append(type_filter[0])
+
+    if len(filters) > 1:
+        filterMetadatas = {"$and": filters}
+    elif len(filters) == 1:
+        filterMetadatas = filters[0]
+    else:
+        filterMetadatas = {}
+        
+        
+    result = collection.query(
+        query_texts=[question],
+        where=filterMetadatas,
+        include=["metadatas", "distances"],
+        n_results=10
+    )
+    metadatas = result.get("metadatas", [])
+    distances = result.get("distances", [])
+
+    # 初始化 filtered_results 列表
+    filtered_results = []
+
+    for metadata_list, distance_list in zip(metadatas, distances):
+        for metadata, distance in zip(metadata_list, distance_list):
+            if metadata["name"] == store_name:
+                metadata["new_store_name"] = new_store_name
+                # 假設 collection.update_metadata 是正確的方法來更新元數據
+                collection.update(
+                    ids=[metadata["file_name"]],
+                    metadatas=[metadata]
+                )
+            if distance < 0.2:
+                if "new_store_name" in metadata:
+                    filtered_results.append((metadata["new_store_name"], distance))
+                else:
+                    filtered_results.append((metadata["name"], distance))
+                    
+    filtered_results.sort(key=lambda x: x[1], reverse=False)
+
+    names = [name for name, distance in filtered_results]
+
+    return names
     
 def demo(question):
     chroma_client = chromadb.PersistentClient(path=dbpath)
