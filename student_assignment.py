@@ -22,10 +22,6 @@ openai_ef = embedding_functions.OpenAIEmbeddingFunction(
     deployment_id = gpt_emb_config['deployment_name']
 )
 
-#coding:utf-8
-
- 
-
 import sqlite3
 
 def GetTables(db_file = 'chroma.sqlite3'):
@@ -63,7 +59,9 @@ def generate_hw01(question):
                 continue
             documents.append(line[5])
             date_obj = datetime.strptime(line[9], '%Y-%m-%d')
-            date_timestamp = str(round(date_obj.timestamp()))
+            date_timestamp = str(round(date_obj.timestamp()))            
+            if line[2] == "農場":
+                line[2] = "旅遊"
             metadatas.append({
             "file_name": csvFile,
             "name": line[1],
