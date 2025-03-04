@@ -21,6 +21,33 @@ openai_ef = embedding_functions.OpenAIEmbeddingFunction(
     api_version = gpt_emb_config['api_version'],
     deployment_id = gpt_emb_config['deployment_name']
 )
+
+#coding:utf-8
+
+ 
+
+import sqlite3
+
+def GetTables(db_file = 'chroma.sqlite3'):
+
+    conn = sqlite3.connect(db_file)
+
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cur.fetchall()
+
+    # 對每個表格執行查詢並打印其內容
+    for table in tables:
+        table_name = table[0]
+        print(f"Table: {table_name}")
+        cur.execute(f"SELECT * FROM {table_name}")
+        results = cur.fetchall()
+        for row in results:
+            print(row)
+        print("\n")  # 分隔各個表格的輸出
+
+
+
 def generate_hw01(question):
     with open(csvFile, mode="r", encoding="utf-8") as file:
         lines = csv.reader(file)
@@ -30,7 +57,6 @@ def generate_hw01(question):
         metadatas = []
         
         ids = []
-        id = 1
         
         for i, line in enumerate(lines):
             if i==0:
@@ -48,8 +74,7 @@ def generate_hw01(question):
             "town": line[8],
             "date": date_timestamp
             })
-            ids.append(str(id))
-            id+=1
+            ids.append(line[0])
             
     chroma_client = chromadb.PersistentClient(path=dbpath)
     collection = chroma_client.get_or_create_collection(
