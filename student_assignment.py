@@ -127,16 +127,18 @@ def generate_hw02(question, city, store_type, start_date, end_date):
     result = collection.query(
         query_texts=[question],
         where=filterMetadatas,
-        include=["metadatas", "distances"]
+        include=["metadatas", "distances"],
+        n_results=10
     )
+    # print(result)
     metadatas = result.get("metadatas", [])
     distances = result.get("distances", [])
 
-    names = []
+    filtered_results = []
     for metadata_list, distance_list in zip(metadatas, distances):
         for metadata, distance in zip(metadata_list, distance_list):
             if distance < 0.2 and "name" in metadata:
-            filtered_results.append((metadata, distance))
+                filtered_results.append((metadata, distance))
 
     filtered_results.sort(key=lambda x: x[1])
 
