@@ -4,6 +4,7 @@ import traceback
 
 import csv
 import datetime
+import pytz
 
 from chromadb.utils import embedding_functions
 
@@ -45,9 +46,10 @@ def GetTables(db_file = 'chroma.sqlite3'):
 def timestampTrans(time):
     if isinstance(time, datetime.datetime):
         date_timestamp = int(round(time.timestamp()))
-    else:
+    elif isinstance(time, str):
         date_obj = datetime.datetime.strptime(time, '%Y-%m-%d')
-        date_timestamp = int(round(date_obj.timestamp()))   
+        date_obj = date_obj.replace(tzinfo=pytz.UTC)
+        date_timestamp = int(date_obj.timestamp())  
     return date_timestamp
 def generate_hw01(question):
     chroma_client = chromadb.PersistentClient(path=dbpath)
