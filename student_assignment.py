@@ -59,18 +59,10 @@ def generate_hw01(question):
     if collection.count() == 0:
         with open(csvFile, mode="r", encoding="utf-8") as file:
             lines = csv.reader(file)
-            
-            documents = []
-            
-            metadatas = []
-            
-            ids = []
-            
             for i, line in enumerate(lines):
                 if i==0:
                     continue
-                documents.append(line[5])
-                metadatas.append({
+                metadatas = {
                 "file_name": csvFile,
                 "name": line[1],
                 "type": line[2],
@@ -79,15 +71,12 @@ def generate_hw01(question):
                 "city": line[7],
                 "town": line[8],
                 "date": timestampTrans(line[9])
-                })
-                ids.append(str(i))     
-                
-        collection.add(
-            ids=ids,
-            documents=documents,
-            metadatas=metadatas,            
-        )
-    
+                }
+                collection.add(
+                    ids=str(i),
+                    metadatas=metadatas,
+                    documents=line[5],                           
+                )              
     return collection    
 def generate_hw02(question, city, store_type, start_date, end_date):
     start_date = timestampTrans(start_date)
