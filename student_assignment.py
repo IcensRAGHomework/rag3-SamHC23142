@@ -76,7 +76,7 @@ def generate_hw01(question):
                     ids=str(i),
                     metadatas=metadatas,
                     documents=line[5],                           
-                )              
+                )
     return collection    
 def generate_hw02(question, city, store_type, start_date, end_date):
     start_date = timestampTrans(start_date)
