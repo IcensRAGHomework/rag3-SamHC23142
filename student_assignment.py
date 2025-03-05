@@ -65,13 +65,11 @@ def generate_hw01(question):
             metadatas = []
             
             ids = []
-            i = 1
+            
             for i, line in enumerate(lines):
                 if i==0:
                     continue
                 documents.append(line[5])
-                if line[2] == "農場":
-                    line[2] = "旅遊"
                 metadatas.append({
                 "file_name": csvFile,
                 "name": line[1],
@@ -82,8 +80,8 @@ def generate_hw01(question):
                 "town": line[8],
                 "date": timestampTrans(line[9])
                 })
-                ids.append(str(i))                
-                i += 1
+                ids.append(str(i))     
+                
         collection.add(
             ids=ids,
             documents=documents,
