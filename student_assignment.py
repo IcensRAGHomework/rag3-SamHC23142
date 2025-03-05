@@ -51,7 +51,7 @@ def timestampTrans(time):
         date_obj = date_obj.replace(tzinfo=pytz.UTC)
         date_timestamp = int(date_obj.timestamp())  
     return date_timestamp
-def generate_hw01(question):
+def generate_hw01():
     chroma_client = chromadb.PersistentClient(path=dbpath)
     collection = chroma_client.get_or_create_collection(
         name="TRAVEL",
