@@ -45,7 +45,8 @@ def GetTables(db_file = 'chroma.sqlite3'):
 
 def timestampTrans(time):
     if isinstance(time, datetime.datetime):
-        date_timestamp = int(round(time.timestamp()))
+        time = time.replace(tzinfo=pytz.UTC)
+        date_timestamp = int(time.timestamp())
     elif isinstance(time, str):
         date_obj = datetime.datetime.strptime(time, '%Y-%m-%d')
         date_obj = date_obj.replace(tzinfo=pytz.UTC)
@@ -61,10 +62,19 @@ def generate_hw01():
     if collection.count() == 0:
         with open(csvFile, mode="r", encoding="utf-8") as file:
             lines = csv.reader(file)
+            
+            ids = []
+            
+            metadatas = []
+            
+            documents = []
+            
             for i, line in enumerate(lines):
                 if i==0:
                     continue
-                metadatas = {
+                ids.append(str(i))
+                documents.append(line[5])
+                metadatas.append({
                 "file_name": csvFile,
                 "name": line[1],
                 "type": line[2],
@@ -73,17 +83,17 @@ def generate_hw01():
                 "city": line[7],
                 "town": line[8],
                 "date": timestampTrans(line[9])
-                }
-                collection.add(
-                    ids=str(i),
-                    metadatas=metadatas,
-                    documents=line[5],                           
-                )
+                })
+        collection.add(
+            ids=ids,
+            metadatas=metadatas,
+            documents=documents
+        )
     return collection    
 def generate_hw02(question, city, store_type, start_date, end_date):
     start_date = timestampTrans(start_date)
     end_date = timestampTrans(end_date)
-    
+
     chroma_client = chromadb.PersistentClient(path=dbpath)
     collection = chroma_client.get_or_create_collection(
         name="TRAVEL",
